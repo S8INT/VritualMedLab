@@ -15,6 +15,7 @@ import { getDemoImage } from "@/data/images";
 import { InteractiveSimulation } from "@/components/simulation/InteractiveSimulation";
 import { LabReport } from "@/components/simulation/LabReport";
 import { EquipmentGallery } from "@/components/simulation/EquipmentGallery";
+import { CollaborativeSimulation } from "@/components/collaboration/CollaborativeSimulation";
 
 export default function Simulation() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +23,9 @@ export default function Simulation() {
   const [currentStep, setCurrentStep] = useState(0);
   const [showLabReport, setShowLabReport] = useState(false);
   const [simulationResults, setSimulationResults] = useState<any[]>([]);
+  const [isCollaborative, setIsCollaborative] = useState(false);
+  const [userId] = useState(`user_${Math.random().toString(36).substring(2, 10)}`);
+  const [username] = useState(`Student ${Math.floor(Math.random() * 1000) + 1}`);
   const { toast } = useToast();
   
   const [match, params] = useRoute("/simulations/:id");
