@@ -212,10 +212,11 @@ export default function Dashboard() {
                       )}
                     </ul>
                     <CardFooter className="bg-muted/50 p-4">
-                      <Link href="/case-studies">
-                        <a className="text-sm font-medium text-primary hover:text-primary/80">
-                          View all cases <span aria-hidden="true">&rarr;</span>
-                        </a>
+                      <Link 
+                        href="/case-studies"
+                        className="text-sm font-medium text-primary hover:text-primary/80"
+                      >
+                        View all cases <span aria-hidden="true">&rarr;</span>
                       </Link>
                     </CardFooter>
                   </Card>
