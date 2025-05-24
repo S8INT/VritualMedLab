@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { LabCard } from "@/components/ui/lab-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Department, Simulation } from "@shared/schema";
 import { getDemoImage } from "@/data/images";
+import { clinicalChemistryScenarios } from "@/data/clinicalChemistryScenarios";
 
 export default function ClinicalChemistry() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -102,26 +105,207 @@ export default function ClinicalChemistry() {
 
               {/* Laboratory Simulations */}
               <h2 className="text-lg font-heading font-semibold text-foreground mb-4">Available Simulations</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-                {isLoadingSimulations ? (
-                  <p>Loading simulations...</p>
-                ) : (
-                  simulations?.map((simulation) => (
-                    <LabCard
-                      key={simulation.id}
-                      id={simulation.id}
-                      title={simulation.title}
-                      description={simulation.description}
-                      department={{
-                        id: simulation.departmentId,
-                        name: "Clinical Chemistry"
-                      }}
-                      duration={simulation.duration}
-                      imagePath={getDemoImage('clinicalChemistry')}
-                    />
-                  ))
-                )}
-              </div>
+              
+              <Tabs defaultValue="all" className="mb-8">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="all">All Simulations</TabsTrigger>
+                  <TabsTrigger value="calibration">Analyzer Calibration</TabsTrigger>
+                  <TabsTrigger value="reagents">Reagent Preparation</TabsTrigger>
+                  <TabsTrigger value="interpretation">Result Interpretation</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="all">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {clinicalChemistryScenarios.map((scenario) => (
+                      <Link key={scenario.id} href={`/simulations/${scenario.id}`}>
+                        <a className="block">
+                          <LabCard
+                            id={scenario.id}
+                            title={scenario.title}
+                            description={scenario.description}
+                            department={{
+                              id: 2, // Assuming Clinical Chemistry department ID is 2
+                              name: "Clinical Chemistry"
+                            }}
+                            duration="30-45 min"
+                            imagePath={scenario.specimens[0]?.image || getDemoImage('clinicalChemistry')}
+                          />
+                        </a>
+                      </Link>
+                    ))}
+                    
+                    {isLoadingSimulations ? (
+                      <p>Loading additional simulations...</p>
+                    ) : (
+                      simulations?.map((simulation) => (
+                        <LabCard
+                          key={simulation.id}
+                          id={simulation.id}
+                          title={simulation.title}
+                          description={simulation.description}
+                          department={{
+                            id: simulation.departmentId,
+                            name: "Clinical Chemistry"
+                          }}
+                          duration={simulation.duration}
+                          imagePath={getDemoImage('clinicalChemistry')}
+                        />
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="calibration">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link href={`/simulations/${clinicalChemistryScenarios[0]?.id}`}>
+                      <a className="block">
+                        <LabCard
+                          id={clinicalChemistryScenarios[0]?.id || 10}
+                          title={clinicalChemistryScenarios[0]?.title || "Analyzer Calibration & Quality Control"}
+                          description={clinicalChemistryScenarios[0]?.description || "Learn how to perform proper calibration and quality control procedures for a clinical chemistry analyzer."}
+                          department={{
+                            id: 2,
+                            name: "Clinical Chemistry"
+                          }}
+                          duration="30-45 min"
+                          imagePath={clinicalChemistryScenarios[0]?.specimens[0]?.image || getDemoImage('clinicalChemistry')}
+                        />
+                      </a>
+                    </Link>
+                    
+                    {/* Featured calibration procedures */}
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">science</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Daily QC Procedures</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Perform and monitor daily quality control procedures using Levey-Jennings charts.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">analytics</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Method Validation</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Learn how to validate a new analytical method using accuracy, precision, and linearity studies.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="reagents">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link href={`/simulations/${clinicalChemistryScenarios[1]?.id}`}>
+                      <a className="block">
+                        <LabCard
+                          id={clinicalChemistryScenarios[1]?.id || 11}
+                          title={clinicalChemistryScenarios[1]?.title || "Reagent Preparation & Storage"}
+                          description={clinicalChemistryScenarios[1]?.description || "Learn proper techniques for preparing, validating, and storing reagents used in clinical chemistry testing."}
+                          department={{
+                            id: 2,
+                            name: "Clinical Chemistry"
+                          }}
+                          duration="30-45 min"
+                          imagePath={clinicalChemistryScenarios[1]?.specimens[0]?.image || getDemoImage('clinicalChemistry')}
+                        />
+                      </a>
+                    </Link>
+                    
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">opacity</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Buffer Preparation</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Master the preparation of common laboratory buffers with precise pH adjustment and validation.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">science</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Working Calibrators</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Prepare multi-level calibrators for chemistry analyzers following proper dilution techniques.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="interpretation">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link href={`/simulations/${clinicalChemistryScenarios[2]?.id}`}>
+                      <a className="block">
+                        <LabCard
+                          id={clinicalChemistryScenarios[2]?.id || 12}
+                          title={clinicalChemistryScenarios[2]?.title || "Interpreting Abnormal Chemistry Results"}
+                          description={clinicalChemistryScenarios[2]?.description || "Learn to recognize patterns of abnormal laboratory results and interpret their clinical significance."}
+                          department={{
+                            id: 2,
+                            name: "Clinical Chemistry"
+                          }}
+                          duration="30-45 min"
+                          imagePath={clinicalChemistryScenarios[2]?.specimens[0]?.image || getDemoImage('clinicalChemistry')}
+                        />
+                      </a>
+                    </Link>
+                    
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">healing</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Diabetes Case Studies</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Analyze complex diabetes cases with glucose, HbA1c, and lipid abnormalities requiring clinical correlation.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="overflow-hidden border-dashed border-2 hover:border-chemistry hover:bg-chemistry/5 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col h-full justify-center items-center text-center p-4">
+                          <div className="w-16 h-16 bg-chemistry/10 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-icons text-chemistry text-2xl">favorite</span>
+                          </div>
+                          <h3 className="text-lg font-heading font-medium mb-2">Cardiac Markers</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Interpret cardiac marker patterns in acute coronary syndrome and differentiate from non-cardiac causes.</p>
+                          <Button variant="outline" className="text-chemistry border-chemistry hover:bg-chemistry/10 mt-auto">
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               {/* Common Tests */}
               <h2 className="text-lg font-heading font-semibold text-foreground mb-4">Common Tests</h2>
