@@ -186,10 +186,22 @@ export default function Simulation() {
                       <span className="material-icons mr-1 text-sm">schedule</span>
                       {simulation.duration}
                     </span>
-                    <Button variant="outline" size="sm">
-                      <span className="material-icons mr-2 text-sm">help_outline</span>
-                      Help
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant={isCollaborative ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setIsCollaborative(!isCollaborative)}
+                      >
+                        <span className="material-icons mr-2 text-sm">
+                          {isCollaborative ? "people" : "person"}
+                        </span>
+                        {isCollaborative ? "Collaborative Mode" : "Individual Mode"}
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <span className="material-icons mr-2 text-sm">help_outline</span>
+                        Help
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -251,14 +263,34 @@ export default function Simulation() {
                           </TabsList>
                           <TabsContent value="simulation" className="p-0">
                             {!showLabReport ? (
-                              <InteractiveSimulation
-                                departmentType={department?.name.toLowerCase() || 'microbiology'}
-                                currentStep={currentStep}
-                                simulationId={department?.name.toLowerCase() === 'microbiology' ? 1 : 
-                                            department?.name.toLowerCase() === 'clinical chemistry' ? 2 : 
-                                            department?.name.toLowerCase() === 'histopathology' ? 3 : 1}
-                                onComplete={handleSimulationComplete}
-                              />
+                              isCollaborative ? (
+                                <CollaborativeSimulation
+                                  username={username}
+                                  userId={userId}
+                                  simulationId={simulationId}
+                                  departmentType={department?.name.toLowerCase() || 'microbiology'}
+                                  currentStep={currentStep}
+                                  onStepChange={setCurrentStep}
+                                >
+                                  <InteractiveSimulation
+                                    departmentType={department?.name.toLowerCase() || 'microbiology'}
+                                    currentStep={currentStep}
+                                    simulationId={department?.name.toLowerCase() === 'microbiology' ? 1 : 
+                                                department?.name.toLowerCase() === 'clinical chemistry' ? 2 : 
+                                                department?.name.toLowerCase() === 'histopathology' ? 3 : 1}
+                                    onComplete={handleSimulationComplete}
+                                  />
+                                </CollaborativeSimulation>
+                              ) : (
+                                <InteractiveSimulation
+                                  departmentType={department?.name.toLowerCase() || 'microbiology'}
+                                  currentStep={currentStep}
+                                  simulationId={department?.name.toLowerCase() === 'microbiology' ? 1 : 
+                                              department?.name.toLowerCase() === 'clinical chemistry' ? 2 : 
+                                              department?.name.toLowerCase() === 'histopathology' ? 3 : 1}
+                                  onComplete={handleSimulationComplete}
+                                />
+                              )
                             ) : (
                               <LabReport
                                 simulationId={Number(id)}
