@@ -48,6 +48,44 @@ export default function Simulation() {
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+  
+  // Handle simulation step completion
+  const handleSimulationComplete = (results: any) => {
+    // Add the results to our collection
+    setSimulationResults(prev => [...prev, results]);
+    
+    // Move to the next step or show lab report if all steps completed
+    if (currentStep < 2) { // Assuming we have 3 steps (0, 1, 2)
+      setCurrentStep(prev => prev + 1);
+      toast({
+        title: "Step completed!",
+        description: `You've completed the "${results.notes}" step.`,
+      });
+    } else {
+      // All steps completed, show lab report
+      setShowLabReport(true);
+      toast({
+        title: "Simulation completed!",
+        description: "Please complete your lab report.",
+      });
+    }
+  };
+  
+  // Handle saving lab report
+  const handleSaveReport = (reportData: any) => {
+    // In a real app, we would save this to the backend
+    console.log("Lab report saved:", reportData);
+    
+    toast({
+      title: "Lab report saved!",
+      description: "Your lab report has been submitted successfully.",
+    });
+    
+    // Reset the simulation state for a new session
+    setCurrentStep(0);
+    setShowLabReport(false);
+    setSimulationResults([]);
+  };
 
   const handleNextStep = () => {
     if (procedureSteps && activeStep < procedureSteps.length - 1) {
