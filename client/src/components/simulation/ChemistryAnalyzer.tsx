@@ -774,8 +774,7 @@ export function ChemistryAnalyzer({ mode, onComplete }: ChemistryAnalyzerProps) 
                       </div>
                       <Progress 
                         value={level} 
-                        className="h-2" 
-                        indicatorClassName={level < 20 ? 'bg-red-500' : level < 40 ? 'bg-yellow-500' : ''} 
+                        className={`h-2 ${level < 20 ? 'bg-red-500' : level < 40 ? 'bg-yellow-500' : ''}`}
                       />
                     </div>
                   ))}
