@@ -247,12 +247,14 @@ export default function Simulation() {
                       <CardContent className="p-6">
                         <h2 className="text-lg font-heading font-semibold text-foreground mb-4">Learning Objectives</h2>
                         <ul className="space-y-2">
-                          {(simulation.objectives as string[]).map((objective, index) => (
+                          {simulation?.objectives ? (simulation.objectives as string[]).map((objective, index) => (
                             <li key={index} className="flex items-start">
                               <span className="material-icons text-primary mr-2 text-sm">check_circle</span>
                               <span className="text-sm text-foreground">{objective}</span>
                             </li>
-                          ))}
+                          )) : (
+                            <li className="text-sm text-muted-foreground">Loading objectives...</li>
+                          )}
                         </ul>
                       </CardContent>
                     </Card>
@@ -261,14 +263,18 @@ export default function Simulation() {
                       <CardContent className="p-6">
                         <h2 className="text-lg font-heading font-semibold text-foreground mb-4">Procedure Overview</h2>
                         <ol className="space-y-3">
-                          {procedureSteps.map((step, index) => (
-                            <li key={index} className={`flex items-start ${index === activeStep ? 'font-medium text-primary' : 'text-foreground'}`}>
-                              <div className={`flex-shrink-0 w-6 h-6 rounded-full ${index === activeStep ? 'bg-primary' : index < activeStep ? 'bg-primary/20' : 'bg-muted'} flex items-center justify-center mr-3`}>
-                                <span className={`text-xs ${index === activeStep ? 'text-white' : index < activeStep ? 'text-primary' : 'text-muted-foreground'}`}>{index + 1}</span>
-                              </div>
-                              <span className="text-sm">{step.step}</span>
-                            </li>
-                          ))}
+                          {procedureSteps.length > 0 ? (
+                            procedureSteps.map((step, index) => (
+                              <li key={index} className={`flex items-start ${index === activeStep ? 'font-medium text-primary' : 'text-foreground'}`}>
+                                <div className={`flex-shrink-0 w-6 h-6 rounded-full ${index === activeStep ? 'bg-primary' : index < activeStep ? 'bg-primary/20' : 'bg-muted'} flex items-center justify-center mr-3`}>
+                                  <span className={`text-xs ${index === activeStep ? 'text-white' : index < activeStep ? 'text-primary' : 'text-muted-foreground'}`}>{index + 1}</span>
+                                </div>
+                                <span className="text-sm">{step.step}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-muted-foreground">Loading procedure steps...</li>
+                          )}
                         </ol>
                       </CardContent>
                     </Card>
