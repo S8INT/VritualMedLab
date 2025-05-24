@@ -8,15 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 import { Department, Simulation as SimulationType } from "@shared/schema";
 import { getDemoImage } from "@/data/images";
+import { InteractiveSimulation } from "@/components/simulation/InteractiveSimulation";
+import { LabReport } from "@/components/simulation/LabReport";
 
 export default function Simulation() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showLabReport, setShowLabReport] = useState(false);
+  const [simulationResults, setSimulationResults] = useState<any[]>([]);
+  const { toast } = useToast();
+  
   const [match, params] = useRoute("/simulations/:id");
-  const simulationId = params?.id ? parseInt(params.id) : 0;
+  const id = params?.id;
+  const simulationId = id ? parseInt(id) : 0;
 
   // Fetch simulation details
   const { data: simulation, isLoading: isLoadingSimulation } = useQuery<SimulationType>({
@@ -197,19 +206,21 @@ export default function Simulation() {
                             <TabsTrigger value="results" className="flex-1 rounded-none h-full data-[state=active]:bg-card">Results</TabsTrigger>
                           </TabsList>
                           <TabsContent value="simulation" className="p-0">
-                            <div className="aspect-video relative overflow-hidden bg-black">
-                              <img 
-                                src={getDemoImage(department?.name.toLowerCase() || 'equipment')} 
-                                alt="Laboratory simulation"
-                                className="w-full h-full object-cover opacity-90" 
+                            {!showLabReport ? (
+                              <InteractiveSimulation
+                                departmentType={department?.name.toLowerCase() || 'microbiology'}
+                                currentStep={currentStep}
+                                onComplete={handleSimulationComplete}
                               />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Button className="bg-white/90 hover:bg-white text-gray-900">
-                                  <span className="material-icons mr-2">play_arrow</span>
-                                  Start Interactive Simulation
-                                </Button>
-                              </div>
-                            </div>
+                            ) : (
+                              <LabReport
+                                simulationId={Number(id)}
+                                simulationTitle={simulation?.title || ''}
+                                departmentName={department?.name || ''}
+                                simulationResults={simulationResults}
+                                onSave={handleSaveReport}
+                              />
+                            )}
                           </TabsContent>
                           <TabsContent value="microscope" className="p-0">
                             <div className="aspect-video relative overflow-hidden bg-black">
