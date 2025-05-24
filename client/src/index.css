@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Base colors */
+  --background: 0 0% 98%; /* #fafafa */
+  --foreground: 222 14% 28%; /* #495057 */
+  
+  /* Component colors */
+  --card: 0 0% 100%; /* #ffffff */
+  --card-foreground: 222 14% 28%; /* #495057 */
+  --popover: 0 0% 100%; /* #ffffff */
+  --popover-foreground: 222 14% 28%; /* #495057 */
+  --primary: 207 90% 54%; /* #0073b1 */
+  --primary-foreground: 210 100% 98%; /* #f8faff */
+  --secondary: 172 54% 43%; /* #2ca58d */
+  --secondary-foreground: 210 100% 98%; /* #f8faff */
+  --muted: 220 5% 94%; /* #e9ecef */
+  --muted-foreground: 225 5% 45%; /* #6c757d */
+  --accent: 216 12% 92%; /* #e9ecef */
+  --accent-foreground: 222 14% 28%; /* #495057 */
+  --destructive: 0 84% 60%; /* #dc3545 */
+  --destructive-foreground: 210 100% 98%; /* #f8faff */
+  --border: 220 5% 88%; /* #dee2e6 */
+  --input: 220 5% 88%; /* #dee2e6 */
+  --ring: 207 90% 54%; /* #0073b1 */
+  
+  /* Department colors */
+  --microbiology: 277 53% 47%; /* #8e44ad */
+  --chemistry: 28 83% 52%; /* #e67e22 */
+  --histopathology: 7 67% 49%; /* #c0392b */
+  
+  /* Status colors */
+  --success: 134 61% 40%; /* #28a745 */
+  --warning: 45 100% 51%; /* #ffc107 */
+  --error: 354 70% 54%; /* #dc3545 */
+
+  /* Radius and other properties */
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 240 10% 4%; /* #121212 */
+  --foreground: 210 6% 93%; /* #e9e9ec */
+  
+  --card: 240 10% 8%; /* #1e1e1e */
+  --card-foreground: 210 6% 93%; /* #e9e9ec */
+  --popover: 240 10% 8%; /* #1e1e1e */
+  --popover-foreground: 210 6% 93%; /* #e9e9ec */
+  --primary: 207 90% 54%; /* #0073b1 */
+  --primary-foreground: 210 100% 98%; /* #f8faff */
+  --secondary: 172 54% 43%; /* #2ca58d */
+  --secondary-foreground: 210 100% 98%; /* #f8faff */
+  --muted: 240 4% 16%; /* #232326 */
+  --muted-foreground: 240 5% 65%; /* #a1a1aa */
+  --accent: 240 4% 16%; /* #232326 */
+  --accent-foreground: 210 6% 93%; /* #e9e9ec */
+  --destructive: 0 63% 31%; /* #7f1d1d */
+  --destructive-foreground: 210 6% 93%; /* #e9e9ec */
+  --border: 240 4% 16%; /* #232326 */
+  --input: 240 4% 16%; /* #232326 */
+  --ring: 207 90% 54%; /* #0073b1 */
+  
+  /* Department colors - slightly adjusted for dark mode */
+  --microbiology: 277 53% 57%; /* #9b59b6 */
+  --chemistry: 28 83% 62%; /* #e98b38 */
+  --histopathology: 7 67% 59%; /* #d04b3c */
+  
+  /* Status colors - slightly adjusted for dark mode */
+  --success: 134 61% 45%; /* #2db84f */
+  --warning: 45 100% 56%; /* #ffca2c */
+  --error: 354 70% 59%; /* #e05260 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    @apply bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
+    @apply font-medium;
+  }
+
+  .lab-value {
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  /* Department colors */
+  .bg-microbiology {
+    background-color: hsl(var(--microbiology));
+  }
+  .text-microbiology {
+    color: hsl(var(--microbiology));
+  }
+  .border-microbiology {
+    border-color: hsl(var(--microbiology));
+  }
+
+  .bg-chemistry {
+    background-color: hsl(var(--chemistry));
+  }
+  .text-chemistry {
+    color: hsl(var(--chemistry));
+  }
+  .border-chemistry {
+    border-color: hsl(var(--chemistry));
+  }
+
+  .bg-histopathology {
+    background-color: hsl(var(--histopathology));
+  }
+  .text-histopathology {
+    color: hsl(var(--histopathology));
+  }
+  .border-histopathology {
+    border-color: hsl(var(--histopathology));
+  }
+
+  /* Status colors */
+  .bg-status-success {
+    background-color: hsl(var(--success));
+  }
+  .text-status-success {
+    color: hsl(var(--success));
+  }
+
+  .bg-status-warning {
+    background-color: hsl(var(--warning));
+  }
+  .text-status-warning {
+    color: hsl(var(--warning));
+  }
+
+  .bg-status-error {
+    background-color: hsl(var(--error));
+  }
+  .text-status-error {
+    color: hsl(var(--error));
+  }
+
+  /* Common component styles */
+  .dept-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  .sidebar-link.active {
+    border-left-width: 4px;
+  }
+
+  .lab-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .lab-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
