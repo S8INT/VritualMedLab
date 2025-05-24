@@ -14,6 +14,7 @@ import { Department, Simulation as SimulationType } from "@shared/schema";
 import { getDemoImage } from "@/data/images";
 import { InteractiveSimulation } from "@/components/simulation/InteractiveSimulation";
 import { LabReport } from "@/components/simulation/LabReport";
+import { EquipmentGallery } from "@/components/simulation/EquipmentGallery";
 
 export default function Simulation() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -241,6 +242,7 @@ export default function Simulation() {
                           <TabsList className="w-full rounded-none bg-muted/50 p-0 h-12">
                             <TabsTrigger value="simulation" className="flex-1 rounded-none h-full data-[state=active]:bg-card">Simulation</TabsTrigger>
                             <TabsTrigger value="microscope" className="flex-1 rounded-none h-full data-[state=active]:bg-card">Microscope View</TabsTrigger>
+                            <TabsTrigger value="equipment" className="flex-1 rounded-none h-full data-[state=active]:bg-card">Equipment</TabsTrigger>
                             <TabsTrigger value="results" className="flex-1 rounded-none h-full data-[state=active]:bg-card">Results</TabsTrigger>
                           </TabsList>
                           <TabsContent value="simulation" className="p-0">
@@ -282,6 +284,9 @@ export default function Simulation() {
                                 </Button>
                               </div>
                             </div>
+                          </TabsContent>
+                          <TabsContent value="equipment" className="p-6">
+                            <EquipmentGallery />
                           </TabsContent>
                           <TabsContent value="results" className="p-6">
                             <div className="text-center py-12">
