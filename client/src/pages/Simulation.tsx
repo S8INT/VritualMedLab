@@ -248,6 +248,9 @@ export default function Simulation() {
                               <InteractiveSimulation
                                 departmentType={department?.name.toLowerCase() || 'microbiology'}
                                 currentStep={currentStep}
+                                simulationId={department?.name.toLowerCase() === 'microbiology' ? 1 : 
+                                            department?.name.toLowerCase() === 'clinical chemistry' ? 2 : 
+                                            department?.name.toLowerCase() === 'histopathology' ? 3 : 1}
                                 onComplete={handleSimulationComplete}
                               />
                             ) : (

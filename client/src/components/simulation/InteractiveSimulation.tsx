@@ -1,38 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { getDemoImage } from '@/data/images';
-
-interface SimulationStep {
-  id: number;
-  name: string;
-  description: string;
-  image: string;
-  tools: Array<{
-    id: number;
-    name: string;
-    icon: string;
-  }>;
-  targets: Array<{
-    id: number;
-    position: { x: number; y: number };
-    size: { width: number; height: number };
-  }>;
-  feedback: {
-    success: string;
-    error: string;
-  };
-}
+import { 
+  SimulationStep, 
+  LabScenario, 
+  getScenarioById, 
+  getScenariosByDepartment 
+} from '@/data/simulationScenarios';
 
 interface InteractiveSimulationProps {
   departmentType: string;
   currentStep: number;
+  simulationId?: number;
   onComplete: (results: any) => void;
 }
 
 export function InteractiveSimulation({ 
   departmentType, 
   currentStep,
+  simulationId = 1, // Default to first scenario if not specified
   onComplete
 }: InteractiveSimulationProps) {
   const [isActive, setIsActive] = useState(false);
@@ -41,11 +31,16 @@ export function InteractiveSimulation({
   const [simulationFeedback, setSimulationFeedback] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [simulationResults, setSimulationResults] = useState<any>({});
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [infoPanelContent, setInfoPanelContent] = useState<'patient' | 'procedure' | 'tools' | 'safety'>('patient');
 
-  // Define simulation steps based on department
-  const simulationSteps = getSimulationSteps(departmentType);
+  // Get the appropriate scenario based on department and ID
+  const scenario = simulationId 
+    ? getScenarioById(simulationId) 
+    : getScenariosByDepartment(departmentType)[0];
   
   // Current simulation step
+  const simulationSteps = scenario?.procedure || [];
   const currentSimulation = simulationSteps[currentStep];
 
   // Reset the simulation when the step changes
@@ -113,22 +108,203 @@ export function InteractiveSimulation({
     }
   };
 
+  // Render clinical case information panel
+  const renderInfoPanel = () => {
+    if (!scenario) return null;
+    
+    return (
+      <Card className="mb-4 overflow-hidden">
+        <CardContent className="p-0">
+          <Tabs defaultValue={infoPanelContent} onValueChange={(v) => setInfoPanelContent(v as any)}>
+            <TabsList className="w-full bg-muted/50 rounded-none p-0 h-10">
+              <TabsTrigger value="patient" className="flex-1 rounded-none h-full">
+                Patient Info
+              </TabsTrigger>
+              <TabsTrigger value="procedure" className="flex-1 rounded-none h-full">
+                Procedure
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="flex-1 rounded-none h-full">
+                Tools
+              </TabsTrigger>
+              <TabsTrigger value="safety" className="flex-1 rounded-none h-full">
+                Safety
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="patient" className="p-4 space-y-3">
+              <div>
+                <Badge variant="outline" className="mb-2">{scenario.department}</Badge>
+                <h3 className="text-lg font-medium">{scenario.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{scenario.description}</p>
+              </div>
+              
+              <div className="space-y-2 mt-3">
+                <h4 className="text-sm font-medium">Patient Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>Age: <span className="text-muted-foreground">{scenario.patientInfo.age}</span></div>
+                  <div>Gender: <span className="text-muted-foreground">{scenario.patientInfo.gender}</span></div>
+                </div>
+                
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium">Symptoms</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground ml-2">
+                    {scenario.patientInfo.symptoms.map((symptom, idx) => (
+                      <li key={idx}>{symptom}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium">Medical History</h4>
+                  <p className="text-sm text-muted-foreground">{scenario.patientInfo.medicalHistory}</p>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="procedure" className="p-4 space-y-3">
+              <div>
+                <h3 className="text-lg font-medium">Procedure Steps</h3>
+                <p className="text-sm text-muted-foreground">Complete all steps in sequence</p>
+              </div>
+              
+              <div className="space-y-2">
+                {scenario.procedure.map((step, idx) => (
+                  <div 
+                    key={step.id} 
+                    className={`p-2 border rounded-md ${idx === currentStep ? 'border-primary bg-primary/5' : 'border-border'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">{step.name}</h4>
+                      {idx < currentStep ? (
+                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</Badge>
+                      ) : idx === currentStep ? (
+                        <Badge variant="outline" className="text-xs">Current</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs bg-muted/50">Pending</Badge>
+                      )}
+                    </div>
+                    {idx === currentStep && (
+                      <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {currentSimulation?.scientificPrinciple && (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <h4 className="text-sm font-medium">Scientific Principle</h4>
+                  <p className="text-xs text-muted-foreground">{currentSimulation.scientificPrinciple}</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="tools" className="p-4 space-y-3">
+              <div>
+                <h3 className="text-lg font-medium">Required Tools</h3>
+                <p className="text-sm text-muted-foreground">Select the appropriate tool for each step</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {currentSimulation?.tools.map(tool => (
+                  <div key={tool.id} className="border rounded-md p-2 flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="material-icons text-primary">{tool.icon}</span>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">{tool.name}</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {currentSimulation?.detailedInstructions && (
+                <div className="mt-3">
+                  <h4 className="text-sm font-medium">Detailed Instructions</h4>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground ml-2 space-y-1 mt-1">
+                    {currentSimulation.detailedInstructions.map((instruction, idx) => (
+                      <li key={idx}>{instruction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="safety" className="p-4 space-y-3">
+              <div>
+                <h3 className="text-lg font-medium">Safety Guidelines</h3>
+                <p className="text-sm text-muted-foreground">Follow these precautions during the procedure</p>
+              </div>
+              
+              {currentSimulation?.safetyNotes ? (
+                <div className="space-y-2">
+                  <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-md">
+                    <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Safety Notes</h4>
+                    <ul className="list-disc list-inside text-xs text-muted-foreground ml-2 mt-1 space-y-1">
+                      {currentSimulation.safetyNotes.map((note, idx) => (
+                        <li key={idx}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 rounded-md">
+                  <h4 className="text-sm font-medium">Standard Laboratory Safety</h4>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground ml-2 mt-1 space-y-1">
+                    <li>Always wear appropriate PPE (gloves, lab coat, eye protection)</li>
+                    <li>Dispose of biological waste in designated containers</li>
+                    <li>Keep work area clean and organized</li>
+                    <li>Wash hands before and after handling specimens</li>
+                    <li>Report any accidents or spills immediately</li>
+                  </ul>
+                </div>
+              )}
+              
+              {currentSimulation?.commonErrors && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md">
+                  <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400">Common Errors to Avoid</h4>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground ml-2 mt-1 space-y-1">
+                    {currentSimulation.commonErrors.map((error, idx) => (
+                      <li key={idx}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Render the simulation container
   const renderSimulationContainer = () => {
     if (!isActive) {
       return (
         <div className="aspect-video relative overflow-hidden bg-black">
           <img 
-            src={getDemoImage(departmentType)} 
+            src={scenario?.specimens[0]?.image || getDemoImage(departmentType)} 
             alt="Laboratory simulation"
             className="w-full h-full object-cover opacity-90" 
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Button className="bg-white/90 hover:bg-white text-gray-900" onClick={handleStartSimulation}>
-              <span className="material-icons mr-2">play_arrow</span>
-              Start Interactive Simulation
-            </Button>
+            <div className="text-center space-y-4">
+              <h2 className="text-white text-xl font-bold drop-shadow-md">
+                {scenario?.title || "Laboratory Simulation"}
+              </h2>
+              <Button className="bg-white/90 hover:bg-white text-gray-900" onClick={handleStartSimulation}>
+                <span className="material-icons mr-2">play_arrow</span>
+                Start Interactive Simulation
+              </Button>
+            </div>
           </div>
+          
+          {/* Specimen Information Badge */}
+          {scenario?.specimens && (
+            <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded-md text-sm max-w-[60%]">
+              <div className="font-medium">Specimen:</div>
+              <div className="text-xs">{scenario.specimens[0].type} - {scenario.specimens[0].appearance}</div>
+            </div>
+          )}
         </div>
       );
     }
@@ -136,14 +312,14 @@ export function InteractiveSimulation({
     return (
       <div className="aspect-video relative overflow-hidden bg-gray-900">
         <img 
-          src={currentSimulation.image || getDemoImage(departmentType)} 
-          alt={currentSimulation.name}
+          src={currentSimulation?.image || getDemoImage(departmentType)} 
+          alt={currentSimulation?.name || "Laboratory procedure"}
           className="w-full h-full object-cover" 
         />
         
         {/* Tool Selection */}
         <div className="absolute bottom-4 left-4 flex gap-2 bg-black/50 p-2 rounded-md">
-          {currentSimulation.tools.map(tool => (
+          {currentSimulation?.tools.map(tool => (
             <Button 
               key={tool.id}
               size="sm" 
@@ -158,7 +334,7 @@ export function InteractiveSimulation({
         </div>
         
         {/* Interactive targets */}
-        {currentSimulation.targets.map(target => (
+        {currentSimulation?.targets.map(target => (
           <div
             key={target.id}
             onClick={() => handleTargetClick(target.id)}
@@ -183,15 +359,54 @@ export function InteractiveSimulation({
   };
 
   return (
-    <>
+    <div className="space-y-4">
+      {/* Toggle for info panel */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">
+          {scenario?.title || `${departmentType} Lab Simulation`}
+        </h2>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setShowInfoPanel(!showInfoPanel)}
+          className="text-sm"
+        >
+          <span className="material-icons text-sm mr-1">
+            {showInfoPanel ? 'visibility_off' : 'visibility'}
+          </span>
+          {showInfoPanel ? 'Hide Details' : 'Show Details'}
+        </Button>
+      </div>
+      
+      {/* Info panel */}
+      {showInfoPanel && renderInfoPanel()}
+      
+      {/* Simulation container */}
       {renderSimulationContainer()}
       
       {/* Instructions */}
-      <div className="p-4 bg-muted/30 border-t border-border">
-        <h3 className="font-medium mb-2">Current Task: {currentSimulation.name}</h3>
-        <p className="text-sm text-muted-foreground">{currentSimulation.description}</p>
+      <div className="p-4 bg-muted/30 border border-border rounded-md">
+        <div className="flex justify-between items-center">
+          <h3 className="font-medium">Current Task: {currentSimulation?.name}</h3>
+          <Badge variant="outline">Step {currentStep + 1} of {simulationSteps.length}</Badge>
+        </div>
+        <Separator className="my-2" />
+        <p className="text-sm text-muted-foreground">{currentSimulation?.description}</p>
+        
+        {currentSimulation?.detailedInstructions && isActive && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <details className="text-sm">
+              <summary className="font-medium cursor-pointer">Detailed Instructions</summary>
+              <ul className="mt-2 space-y-1 list-disc list-inside text-muted-foreground">
+                {currentSimulation.detailedInstructions.map((instruction, idx) => (
+                  <li key={idx}>{instruction}</li>
+                ))}
+              </ul>
+            </details>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
