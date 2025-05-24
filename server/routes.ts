@@ -13,6 +13,42 @@ import {
   insertUserSchema 
 } from "@shared/schema";
 
+import { WebSocketServer, WebSocket } from "ws";
+
+// Define collaborative session types
+interface CollaborativeSession {
+  id: string;
+  name: string;
+  owner: string;
+  createdAt: Date;
+  participants: Map<string, WebSocket>;
+  simulationId: number;
+  departmentType: string;
+  messages: SessionMessage[];
+  currentStep: number;
+  annotations: Annotation[];
+}
+
+interface SessionMessage {
+  sender: string;
+  content: string;
+  timestamp: Date;
+  type: 'chat' | 'action' | 'system';
+}
+
+interface Annotation {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  author: string;
+  color: string;
+  timestamp: Date;
+}
+
+// Store active collaborative sessions
+const activeSessions = new Map<string, CollaborativeSession>();
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Departments routes
   app.get("/api/departments", async (req, res) => {
@@ -292,5 +328,413 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for collaborative sessions
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws) => {
+    let sessionId: string | null = null;
+    let userId: string | null = null;
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle different message types
+        switch (data.type) {
+          case 'join':
+            handleJoinSession(ws, data);
+            sessionId = data.sessionId;
+            userId = data.userId;
+            break;
+          
+          case 'create':
+            handleCreateSession(ws, data);
+            sessionId = data.sessionId;
+            userId = data.userId;
+            break;
+          
+          case 'chat':
+            handleChatMessage(ws, data, sessionId, userId);
+            break;
+          
+          case 'annotation':
+            handleAnnotation(ws, data, sessionId, userId);
+            break;
+          
+          case 'sync':
+            handleSyncRequest(ws, sessionId);
+            break;
+          
+          case 'step':
+            handleStepChange(ws, data, sessionId, userId);
+            break;
+          
+          case 'leave':
+            handleLeaveSession(ws, sessionId, userId);
+            break;
+            
+          default:
+            ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
+        }
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error);
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      if (sessionId && userId) {
+        handleLeaveSession(ws, sessionId, userId);
+      }
+    });
+  });
+  
+  // API routes for collaborative sessions
+  app.get('/api/sessions', (req, res) => {
+    const sessions = Array.from(activeSessions.values()).map(session => ({
+      id: session.id,
+      name: session.name,
+      owner: session.owner,
+      createdAt: session.createdAt,
+      participantCount: session.participants.size,
+      simulationId: session.simulationId,
+      departmentType: session.departmentType
+    }));
+    
+    res.json(sessions);
+  });
+  
+  app.get('/api/sessions/:id', (req, res) => {
+    const sessionId = req.params.id;
+    const session = activeSessions.get(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+    
+    res.json({
+      id: session.id,
+      name: session.name,
+      owner: session.owner,
+      createdAt: session.createdAt,
+      participantCount: session.participants.size,
+      simulationId: session.simulationId,
+      departmentType: session.departmentType,
+      currentStep: session.currentStep,
+      messages: session.messages.slice(-50) // Return last 50 messages
+    });
+  });
+  
   return httpServer;
+}
+
+// WebSocket message handlers
+function handleJoinSession(ws: WebSocket, data: any) {
+  const { sessionId, userId, username } = data;
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Session not found' 
+    }));
+  }
+  
+  // Add participant to session
+  session.participants.set(userId, ws);
+  
+  // Add system message about new participant
+  const joinMessage: SessionMessage = {
+    sender: 'system',
+    content: `${username} has joined the session`,
+    timestamp: new Date(),
+    type: 'system'
+  };
+  
+  session.messages.push(joinMessage);
+  
+  // Notify all participants
+  broadcastToSession(session, {
+    type: 'participant_joined',
+    userId,
+    username,
+    message: joinMessage,
+    participantCount: session.participants.size
+  });
+  
+  // Send session data to new participant
+  ws.send(JSON.stringify({
+    type: 'session_joined',
+    session: {
+      id: session.id,
+      name: session.name,
+      owner: session.owner,
+      simulationId: session.simulationId,
+      departmentType: session.departmentType,
+      currentStep: session.currentStep,
+      messages: session.messages.slice(-50),
+      annotations: session.annotations,
+      participantCount: session.participants.size
+    }
+  }));
+}
+
+function handleCreateSession(ws: WebSocket, data: any) {
+  const { userId, username, sessionName, simulationId, departmentType } = data;
+  
+  // Generate session ID
+  const sessionId = generateSessionId();
+  
+  // Create new session
+  const newSession: CollaborativeSession = {
+    id: sessionId,
+    name: sessionName,
+    owner: userId,
+    createdAt: new Date(),
+    participants: new Map(),
+    simulationId,
+    departmentType,
+    messages: [],
+    currentStep: 0,
+    annotations: []
+  };
+  
+  // Add creator as first participant
+  newSession.participants.set(userId, ws);
+  
+  // Add welcome message
+  const welcomeMessage: SessionMessage = {
+    sender: 'system',
+    content: `Session "${sessionName}" created by ${username}`,
+    timestamp: new Date(),
+    type: 'system'
+  };
+  
+  newSession.messages.push(welcomeMessage);
+  
+  // Store session
+  activeSessions.set(sessionId, newSession);
+  
+  // Send confirmation to creator
+  ws.send(JSON.stringify({
+    type: 'session_created',
+    sessionId,
+    session: {
+      id: sessionId,
+      name: sessionName,
+      owner: userId,
+      simulationId,
+      departmentType,
+      currentStep: 0,
+      messages: [welcomeMessage],
+      annotations: [],
+      participantCount: 1
+    }
+  }));
+}
+
+function handleChatMessage(ws: WebSocket, data: any, sessionId: string | null, userId: string | null) {
+  if (!sessionId || !userId) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Not connected to a session' 
+    }));
+  }
+  
+  const { content, username } = data;
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Session not found' 
+    }));
+  }
+  
+  // Create new message
+  const newMessage: SessionMessage = {
+    sender: username,
+    content,
+    timestamp: new Date(),
+    type: 'chat'
+  };
+  
+  // Add to session messages
+  session.messages.push(newMessage);
+  
+  // Broadcast to all participants
+  broadcastToSession(session, {
+    type: 'chat_message',
+    message: newMessage
+  });
+}
+
+function handleAnnotation(ws: WebSocket, data: any, sessionId: string | null, userId: string | null) {
+  if (!sessionId || !userId) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Not connected to a session' 
+    }));
+  }
+  
+  const { x, y, text, color, username } = data;
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Session not found' 
+    }));
+  }
+  
+  // Create new annotation
+  const newAnnotation: Annotation = {
+    id: generateId(),
+    x,
+    y,
+    text,
+    author: username,
+    color,
+    timestamp: new Date()
+  };
+  
+  // Add to session annotations
+  session.annotations.push(newAnnotation);
+  
+  // Broadcast to all participants
+  broadcastToSession(session, {
+    type: 'annotation_added',
+    annotation: newAnnotation
+  });
+}
+
+function handleSyncRequest(ws: WebSocket, sessionId: string | null) {
+  if (!sessionId) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Not connected to a session' 
+    }));
+  }
+  
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Session not found' 
+    }));
+  }
+  
+  // Send current session state
+  ws.send(JSON.stringify({
+    type: 'session_sync',
+    currentStep: session.currentStep,
+    annotations: session.annotations,
+    messages: session.messages.slice(-50),
+    participantCount: session.participants.size
+  }));
+}
+
+function handleStepChange(ws: WebSocket, data: any, sessionId: string | null, userId: string | null) {
+  if (!sessionId || !userId) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Not connected to a session' 
+    }));
+  }
+  
+  const { step, username } = data;
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Session not found' 
+    }));
+  }
+  
+  // Update session step
+  session.currentStep = step;
+  
+  // Create action message
+  const actionMessage: SessionMessage = {
+    sender: username,
+    content: `moved to step ${step + 1}`,
+    timestamp: new Date(),
+    type: 'action'
+  };
+  
+  session.messages.push(actionMessage);
+  
+  // Broadcast to all participants
+  broadcastToSession(session, {
+    type: 'step_changed',
+    step,
+    message: actionMessage
+  });
+}
+
+function handleLeaveSession(ws: WebSocket, sessionId: string | null, userId: string | null) {
+  if (!sessionId || !userId) {
+    return;
+  }
+  
+  const session = activeSessions.get(sessionId);
+  
+  if (!session) {
+    return;
+  }
+  
+  // Get username before removing from session
+  const username = Array.from(session.messages)
+    .filter(msg => msg.type === 'chat' && msg.sender !== 'system')
+    .find(msg => msg.sender !== 'system')?.sender || 'A participant';
+  
+  // Remove participant
+  session.participants.delete(userId);
+  
+  // Create leave message
+  const leaveMessage: SessionMessage = {
+    sender: 'system',
+    content: `${username} has left the session`,
+    timestamp: new Date(),
+    type: 'system'
+  };
+  
+  session.messages.push(leaveMessage);
+  
+  // Check if session is empty
+  if (session.participants.size === 0) {
+    activeSessions.delete(sessionId);
+    return;
+  }
+  
+  // Broadcast to remaining participants
+  broadcastToSession(session, {
+    type: 'participant_left',
+    userId,
+    message: leaveMessage,
+    participantCount: session.participants.size
+  });
+}
+
+// Helper functions
+function broadcastToSession(session: CollaborativeSession, message: any) {
+  const messageStr = JSON.stringify(message);
+  
+  session.participants.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageStr);
+    }
+  });
+}
+
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2, 10);
+}
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15);
 }
